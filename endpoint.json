@@ -1,0 +1,168 @@
+{
+    "label": "Slack team per user",
+    "name": "slack-user",
+    "apiVersion": "v1",
+    "internal": false,
+    "configurationType": "PER_USER",
+    "deployment": {
+        "profiles":[
+            {
+                "name": "default",
+                "label": "Default",
+                "memory": 512,
+                "offHeapMinFactor": 1.5,
+                "description": "Default configuration"
+            }
+        ],
+        "allowMultipleInstances": true
+    },
+    "icon48": "https://storage.googleapis.com/static.slingrs.io/platform/endpoints/slack.png",
+    "configurationHelpUrl": "/endpoints_slack_user.html#configuration",
+    "status": "ACTIVE",
+    "stores": [],
+    "events": [
+        {
+            "label": "HTTP event",
+            "name": "httpEventArrived",
+            "description": "Happens when any event from events API is received from Slack."
+        },
+        {
+            "label": "Slash command",
+            "name": "slashCommand",
+            "description": "Happens when a slash command handled by the endpoint is called."
+        },
+        {
+            "label": "Interactive Message",
+            "name": "interactiveMessage",
+            "description": "Happens when a button in a message is pushed."
+        },
+        {
+            "label": "Options Load",
+            "name": "optionsLoad",
+            "description": "Happens when Slack needs to populate a dropdown with options."
+        },
+        {
+            "label": "File Downloaded",
+            "name": "fileDownloaded",
+            "description": "Happens when a async download file process is finished (thrown by a GET function with 'forceDownload' enabled and 'downloadSync' disabled)"
+        }
+    ],
+    "functions": [
+        {
+            "label": "Global POST",
+            "name": "_globalPost",
+            "description": "Sends a POST request without user information"
+        },
+        {
+            "label": "POST",
+            "name": "_post",
+            "description": "Sends a POST request"
+        },
+        {
+            "label": "Download file",
+            "name": "_downloadFile",
+            "description": "Downloads a file from Slack"
+        },
+        {
+            "label": "Internal timestamp conversion",
+            "name": "_convertTimestamp"
+        }
+    ],
+    "scripts":[
+        "conversations.js",
+        "functions.js"
+    ],
+    "listeners":[
+        "conversations.js"
+    ],
+    "configuration":[
+        {
+            "name": "clientId",
+            "label": "Client ID",
+            "description": "This is the app client ID",
+            "type": "text",
+            "required": true
+        },
+        {
+            "name": "clientSecret",
+            "label": "Client secret",
+            "description": "This is the app client secret",
+            "type": "password",
+            "required": true
+        },
+        {
+            "name": "verificationToken",
+            "label": "Verification token",
+            "description": "Token provided to verify that requests are actually coming from Slack (OAuth Information -> Verification Token)",
+            "type": "text"
+        },
+        {
+            "name": "scopes",
+            "label": "Scopes",
+            "description": "Scopes that will be requested to the user",
+            "type": "text",
+            "defaultValue": "commands,bot",
+            "required": true
+        },
+        {
+            "name": "redirectUri",
+            "label": "Redirect URI",
+            "description": "Redirect URI to register on your application",
+            "type": "label",
+            "value": "config.WEBHOOK_URL+'/authCallback'"
+        },
+        {
+            "name": "slashCommandsUrl",
+            "label": "Slash commands URL",
+            "description": "This is the URL you need to set as Request URL in each of you Slash commands.",
+            "type": "label",
+            "value": "config.WEBHOOK_URL+'/slashCommands'"
+        },
+        {
+            "name": "interactiveMessagesUrl",
+            "label": "Interactive messages URL",
+            "description": "This is the URL you need to set as 'Request URL' in 'Interactive Messages' page of your app.",
+            "type": "label",
+            "value": "config.WEBHOOK_URL+'/interactiveMessages'"
+        },
+        {
+            "name": "optionsLoadUrl",
+            "label": "Options load URL",
+            "description": "This is the URL you need to set as 'Options Load URL' in 'Interactive Messages' page of your app.",
+            "type": "label",
+            "value": "config.WEBHOOK_URL+'/optionsLoad'"
+        },
+        {
+            "name": "eventsUrl",
+            "label": "Events URL",
+            "description": "This is the URL you need to set as 'Request URL' in 'Event Subscriptions' page of your app. Keep in mind that the endpoint must be deployed in order to interact with the Slack configuration page.",
+            "type": "label",
+            "value": "config.WEBHOOK_URL+'/events'"
+        }
+    ],
+    "userConfiguration":[
+        {
+            "name": "code",
+            "label": "Token",
+            "type": "text",
+            "visibility": false
+        },
+        {
+            "name": "redirectUri",
+            "label": "Redirect URI",
+            "type": "text",
+            "visibility": false
+        },
+        {
+            "name" : "connectButton",
+            "label" : "Add to Slack",
+            "type" : "button",
+            "typeOptions": {
+                "color": "primary",
+                "icon": "zmdi-play",
+                "action": "var redirectUri = config.WEBHOOK_URL + '/authCallback';\nvar scopes = config.ENDPOINT_CONFIG['scopes'];\nvar url = 'https://slack.com/oauth/authorize?client_id='+config.ENDPOINT_CONFIG['clientId']+'&scope='+scopes+'&redirect_uri='+redirectUri+'&state='+config.APP;\nvar win = window.open(url, 'Authorization page', 'toolbar=no,scrollbars=no,location=no,statusbar=no,menubar=no,resizable=0,width=500,height=600,left='+((screen.width/2)-250)+',top='+((screen.height/2)-250)+',');\n\nvar self = this;\n\nvar intervalFn = function() {\n\ttry {\n\t\tif (!win || !win.document) {\n\t\t\twindow.clearInterval(pollTimer);\n\t\t}else{\n\t\t\tif (win.document.URL.indexOf('/authCallback') != -1) {\n\t\t\t\twin.innerWidth = 100;\n\t\t\t\twin.innerHeight = 100;\n\t\t\t\twin.screenX = screen.width;\n\t\t\t\twin.screenY = screen.height;\n\t\t\t\twindow.clearInterval(pollTimer);\n\t\t\t\turl = win.document.URL;\n\t\t\t\tvar pos = url.indexOf('code=');\n\t\t\t\tif(pos > -1) {\n\t\t\t\t\tvar token = url.substring(pos + 5);\n\t\t\t\t\tvar limit = token.indexOf(\"&\");\n\t\t\t\t\tif (limit > -1) {\n\t\t\t\t\t\ttoken = token.substring(0, limit);\n\t\t\t\t\t}\nconfig.code = token;\n\t\t\t\t\tconfig.redirectUri = redirectUri;\n\t\t\t\t\tif (utils.connectToService) {\n\t\t\t\t\t\tutils.connectToService();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\ttry{win.close();}catch(e){}\n\t\t\t}\n\t\t}\n\t} catch(e) {}\n};\n\nvar pollTimer = window.setInterval(function() { intervalFn.apply(self)}, 500);"
+            },
+            "visibility" : "config.ENDPOINT_STATUS == 'DISCONNECTED'"
+        }
+    ]
+}
